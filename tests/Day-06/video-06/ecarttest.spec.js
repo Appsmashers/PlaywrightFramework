@@ -1,6 +1,7 @@
 import {test, expect, Page} from '@playwright/test'
+import { error } from 'node:console';
 
-test("Sign in to Ecart site",async function ({page}) {
+test.only("Sign in to Ecart site",async function ({page}) {
 
     let productCount=0;
     
@@ -17,10 +18,51 @@ test("Sign in to Ecart site",async function ({page}) {
     await addProductToCart(page,"Bolt Cutters");
 
     await verifyProductCount(page,++productCount);
+
+    await navigateToCart(page);
    
-    
+    await deleteProduct(page,"Hammer");
+
+    await verifyProductCount(page, --productCount);
+
+
 });
 
+async function deleteProduct(page,product) {
+
+    let confirm=false;
+
+    const products=page.locator(".product-title");
+
+    await expect(products.first()).toBeVisible();
+
+    const totalNofoProducts=await products.count();
+
+    for(let i=0;i<totalNofoProducts;i++)
+    {
+        const productTitle=await products.nth(i).textContent();
+
+        if(productTitle.trim()===product.trim())
+        {
+            await page.locator(".fa-xmark").nth(i).click();
+            confirm=true;
+            break;
+        }
+    }
+
+    if(!confirm){
+        throw new error('Product "${product}" not found');
+    }
+    
+}
+
+async function navigateToCart(page){
+    const cartCount=page.locator("#lblCartCount");
+
+    await cartCount.click();
+
+    await expect(page.locator(".steps-indicator")).toBeVisible();
+}
 async function navigateToHome(page)
 {
     const navbar=page.locator(".navbar-brand");
@@ -29,12 +71,7 @@ async function navigateToHome(page)
     await expect(page.locator(".card-title").first()).toBeVisible();
 }
 
-async function naviagteToCart(page) {
-    let cartCount=page.locator("#lblCartCount");
-    await cartCount.click();
 
-    await expect(page.locator(".step-indicator").first()).toBeVisible();  
-}
 
 async function verifyProductCount(page, productCount)
 {
